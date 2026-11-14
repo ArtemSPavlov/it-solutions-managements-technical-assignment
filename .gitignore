@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+src/generated/prisma/
+.env
+*.log
+*.tsbuildinfo
+.DS_Store
+.thinkrail/context/
