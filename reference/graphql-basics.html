@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GraphQL — базовая шпаргалка и словарь</title>
+  <link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Справка · GraphQL</div>
+    <h1>Базовая шпаргалка</h1>
+    <p class="lead">Минимальный словарь и синтаксис для чтения API цифровой визитки.</p>
+  </header>
+
+  <section>
+    <h2>Модель выполнения</h2>
+    <p><strong>Схема</strong> описывает допустимые поля и типы. <strong>Запрос</strong> выбирает нужные поля. <strong>Resolver</strong> получает данные. <strong>Ответ</strong> повторяет форму selection set внутри <code>data</code>.</p>
+    <pre><code>query BusinessCard {
+  profile {
+    name
+    skills { name }
+  }
+}</code></pre>
+    <pre><code>{
+  "data": {
+    "profile": {
+      "name": "Артём Павлов",
+      "skills": [{ "name": "..." }]
+    }
+  }
+}</code></pre>
+  </section>
+
+  <section>
+    <h2>Маркеры типов</h2>
+    <dl>
+      <dt>String</dt>
+      <dd>Скалярное строковое значение; вложенный selection set не нужен и не разрешён.</dd>
+      <dt>String!</dt>
+      <dd>Non-Null string: сервер обещает строку, а не <code>null</code>.</dd>
+      <dt>[Skill!]!</dt>
+      <dd>Non-Null список Non-Null объектов <code>Skill</code>: всегда массив, возможно пустой; элементы не <code>null</code>.</dd>
+      <dt>DateTime</dt>
+      <dd>Nullable scalar: допустимы значение даты-времени и <code>null</code>. В проекте <code>endedAt: null</code> означает текущую работу.</dd>
+    </dl>
+  </section>
+
+  <section>
+    <h2>Словарь</h2>
+    <dl>
+      <dt>Schema — схема</dt>
+      <dd>Контракт API: типы, поля, аргументы и корневые операции, доступные клиенту.</dd>
+      <dt>SDL — Schema Definition Language</dt>
+      <dd>Синтаксис описания схемы, например <code>type Profile { name: String! }</code>. В проекте SDL генерируется из TypeScript.</dd>
+      <dt>Object type — объектный тип</dt>
+      <dd>Тип с набором полей, например <code>Profile</code> или <code>Skill</code>. Для него клиент строит вложенный selection set.</dd>
+      <dt>Scalar — скаляр</dt>
+      <dd>Листовое значение: <code>String</code>, <code>Boolean</code>, пользовательский <code>DateTime</code> и т. п.</dd>
+      <dt>Query — операция чтения</dt>
+      <dd>Корневая операция получения данных. В этом проекте доступна только <code>Query.profile</code>.</dd>
+      <dt>Selection set — набор выбранных полей</dt>
+      <dd>Содержимое фигурных скобок: какие поля вернуть для объектного значения.</dd>
+      <dt>Resolver</dt>
+      <dd>Функция получения значения поля. В NestJS корневой resolver объявлен методом <code>ProfileResolver.profile()</code>.</dd>
+      <dt>Mutation / Subscription</dt>
+      <dd>Корневые операции записи и подписки на события. В текущей схеме проекта их нет.</dd>
+      <dt>Introspection</dt>
+      <dd>Запрос информации о самой схеме через служебные поля вроде <code>__schema</code>; используется GraphQL-инструментами.</dd>
+    </dl>
+  </section>
+
+  <section class="source">
+    <strong>Первоисточники:</strong>
+    <a href="https://graphql.org/learn/schema/">Schemas and Types</a>,
+    <a href="https://graphql.org/learn/queries/">Queries</a>,
+    <a href="https://graphql.org/learn/execution/">Execution</a>.
+  </section>
+
+  <p class="footer"><a href="../lessons/0001-graphql-mental-model.html">Вернуться к уроку 1</a></p>
+</main>
+</body>
+</html>
