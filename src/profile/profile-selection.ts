@@ -4,16 +4,7 @@ import type {
   SelectionSetNode,
 } from 'graphql';
 import { Kind } from 'graphql';
-
-export const profileRelations = [
-  'links',
-  'skills',
-  'experience',
-  'projects',
-] as const;
-
-export type ProfileRelation = (typeof profileRelations)[number];
-export type ProfileSelection = Record<ProfileRelation, boolean>;
+import { profileRelations, type ProfileSelection } from './profile.types.js';
 
 function collectFields(
   selectionSet: SelectionSetNode | undefined,

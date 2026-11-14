@@ -1,21 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import type {
-  Experience,
-  Profile,
-  ProfileLink,
-  Project,
-  Skill,
-} from '../generated/prisma/client.js';
 import { PROFILE_ID } from './profile.constants.js';
-import type { ProfileSelection } from './profile-selection.js';
+import type { ProfileRecord, ProfileSelection } from './profile.types.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-
-export type ProfileRecord = Profile & {
-  links?: ProfileLink[];
-  skills?: Skill[];
-  experience?: Experience[];
-  projects?: Project[];
-};
 
 @Injectable()
 export class ProfileRepository {

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { ProfileSelection } from './profile-selection.js';
-import { ProfileRepository, ProfileRecord } from './profile.repository.js';
+import { ProfileRepository } from './profile.repository.js';
+import type { ProfileRecord, ProfileSelection } from './profile.types.js';
 
 @Injectable()
 export class ProfileService {
