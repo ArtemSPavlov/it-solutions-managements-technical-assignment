@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Урок 1 — GraphQL: схема, запрос, resolver, ответ</title>
+  <link rel="stylesheet" href="../assets/lesson.css">
+  <script src="../assets/quiz.js" defer></script>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Урок 1 · GraphQL с нуля</div>
+    <h1>Схема → запрос → resolver → ответ</h1>
+    <p class="lead">Общая модель GraphQL на реальном API цифровой визитки.</p>
+    <p class="meta">10–15 минут · источник: официальная документация GraphQL и NestJS</p>
+  </header>
+
+  <aside class="goal">
+    <strong>Результат урока.</strong> Ты сможешь прочитать запрос <code>profile { name skills { name } }</code>, предсказать форму ответа и назвать метод проекта, который начинает получение данных.
+  </aside>
+
+  <section>
+    <h2>1. Что такое GraphQL</h2>
+    <p><strong>GraphQL — язык запросов к API и серверный механизм их выполнения.</strong> Это не язык запросов к PostgreSQL и не графовая база данных. GraphQL не навязывает способ хранения: данные может предоставить Prisma, другой сервис или обычный объект в памяти (<a href="https://graphql.org/learn/introduction/">официальное введение</a>).</p>
+    <p>Для этого проекта полезна модель из четырёх частей:</p>
+    <div class="cards">
+      <div class="card"><strong>Схема</strong><p>Контракт: какие объекты и поля вообще можно запросить.</p></div>
+      <div class="card"><strong>Запрос</strong><p>Выбор клиента: какие из разрешённых полей нужны сейчас.</p></div>
+      <div class="card"><strong>Resolver</strong><p>Код сервера: где получить значение запрошенного поля.</p></div>
+      <div class="card"><strong>Ответ</strong><p>JSON, структура которого повторяет выбранные поля запроса.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Схема — контракт API</h2>
+    <p>Вот сокращённая версия файла <a href="../../workspace-1/src/schema.gql"><code>src/schema.gql</code></a>:</p>
+    <pre><code>type Query {
+  profile: Profile!
+}
+
+type Profile {
+  name: String!
+  description: String!
+  skills: [Skill!]!
+  experience: [Experience!]!
+}
+
+type Skill {
+  name: String!
+}</code></pre>
+    <ul>
+      <li><code>Query</code> — корневой объектный тип операций чтения.</li>
+      <li><code>profile: Profile!</code> — запрос <code>profile</code> возвращает один объект <code>Profile</code>, а не список; <code>!</code> означает Non-Null.</li>
+      <li><code>skills: [Skill!]!</code> — всегда список, возможно пустой; его элементы тоже не <code>null</code>.</li>
+      <li><code>String</code> — скаляр, листовое значение. <code>Profile</code> и <code>Skill</code> — объектные типы с собственными полями.</li>
+    </ul>
+    <p>Схема ограничивает запросы: нельзя обратиться к полю, которого у соответствующего типа нет. Сервер проверяет документ по схеме до выполнения (<a href="https://graphql.org/learn/schema/">Schemas and Types</a>, <a href="https://graphql.org/learn/validation/">Validation</a>).</p>
+    <aside class="note">В текущей схеме нет <code>Mutation</code> и <code>Subscription</code>: API предоставляет только чтение профиля. Отсутствие изменений — решение контракта, а не ограничение самого GraphQL.</aside>
+  </section>
+
+  <section>
+    <h2>3. Запрос выбирает форму ответа</h2>
+    <p>Клиент не просит «весь профиль целиком». Он строит <strong>selection set</strong> — набор нужных полей — от корня до скаляров:</p>
+    <pre><code>query BusinessCard {
+  profile {
+    name
+    skills {
+      name
+    }
+  }
+}</code></pre>
+    <p><code>query</code> — тип операции, <code>BusinessCard</code> — её имя для диагностики. У объектов <code>profile</code> и <code>skills</code> есть вложенные selection set; у скалярных <code>name</code> их нет (<a href="https://graphql.org/learn/queries/">официальный раздел Queries</a>).</p>
+    <p>Результат имеет знакомую запросу форму:</p>
+    <pre><code>{
+  "data": {
+    "profile": {
+      "name": "Артём Павлов",
+      "skills": [
+        { "name": "TypeScript" }
+      ]
+    }
+  }
+}</code></pre>
+    <p>Здесь нет <code>description</code>, <code>links</code>, <code>experience</code> и <code>projects</code>: клиент их не выбрал. Отдельные HTTP-маршруты вроде <code>/profile/skills</code> для этого не нужны — вложенные данные запрошены в одной GraphQL-операции.</p>
+  </section>
+
+  <section>
+    <h2>4. Как сервер получает данные</h2>
+    <p>При выполнении GraphQL проходит по выбранным полям. Значение поля предоставляет resolver; итог собирается снизу вверх и обычно возвращается как JSON (<a href="https://graphql.org/learn/execution/">Execution</a>).</p>
+    <ol class="flow">
+      <li>Клиент отправляет операцию на <code>POST /graphql</code>.</li>
+      <li>GraphQL проверяет запрос по схеме.</li>
+      <li>Для корневого <code>Query.profile</code> вызывается <a href="../../workspace-1/src/profile/profile.resolver.ts"><code>ProfileResolver.profile()</code></a>.</li>
+      <li>Resolver вызывает <code>ProfileService</code>, затем <code>ProfileRepository</code> читает профиль и выбранные связи через Prisma.</li>
+      <li>GraphQL формирует <code>data.profile</code> только с запрошенными полями.</li>
+    </ol>
+    <pre><code>@Resolver(() =&gt; Profile)
+export class ProfileResolver {
+  @Query(() =&gt; Profile)
+  async profile(@Info() info: GraphQLResolveInfo) {
+    return this.profileService.getProfile(
+      getProfileSelection(info),
+    );
+  }
+}</code></pre>
+    <p>Декоратор <code>@Query</code> связывает метод с корневым полем схемы. В проекте явный resolver написан только для этого корня: метод возвращает объект профиля с выбранными связями, из которого GraphQL собирает остальные поля. Параметр <code>@Info()</code> содержит сведения о запросе; проект использует их, чтобы не загружать невыбранные связи. Это тема отдельного урока.</p>
+  </section>
+
+  <section>
+    <h2>5. Почему модели и схема совпадают</h2>
+    <p>Проект применяет <strong>code-first</strong>: TypeScript-классы с декораторами <code>@ObjectType</code> и <code>@Field</code> являются источником GraphQL SDL, а <code>src/schema.gql</code> генерируется автоматически. Поэтому его не редактируют вручную (<a href="https://docs.nestjs.com/graphql/quick-start">NestJS: code first</a>).</p>
+    <p>Практическое следствие: чтобы понять публичный контракт, смотри на <a href="../../workspace-1/src/profile/profile.models.ts"><code>profile.models.ts</code></a> и <a href="../../workspace-1/src/profile/profile.resolver.ts"><code>profile.resolver.ts</code></a>. Чтобы удобно увидеть уже сгенерированный контракт целиком — на <code>schema.gql</code>.</p>
+  </section>
+
+  <section>
+    <h2>6. Практика: сначала предскажи, потом проверь</h2>
+    <p>Не выполняя запрос, ответь: какие ключи будут у каждого элемента <code>experience</code> и появится ли <code>position</code>?</p>
+    <pre><code>query BusinessCard {
+  profile {
+    name
+    experience {
+      company
+      startedAt
+    }
+  }
+}</code></pre>
+    <details>
+      <summary>Показать ожидаемую форму</summary>
+      <p>У каждого элемента будут только <code>company</code> и <code>startedAt</code>. Поля <code>position</code> не будет: GraphQL не подставляет незапрошенные поля.</p>
+    </details>
+    <p>Если проект запущен, открой <a href="http://localhost:3000/graphql">Apollo Sandbox</a>, выполни запрос и сравни результат со своим прогнозом. Затем удали <code>startedAt</code> и ещё раз предскажи изменение ответа до нажатия Run.</p>
+  </section>
+
+  <section>
+    <h2>7. Проверка без подсказок</h2>
+    <p>Отвечай по памяти, не перечитывая разделы выше. Обратная связь появится сразу после выбора.</p>
+    <form class="quiz" data-quiz>
+      <fieldset class="question" data-answer="b" data-correct="Да. Схема — контракт доступных полей и их типов." data-incorrect="Здесь речь о GraphQL-схеме: она описывает поля и типы API, а не таблицы или HTTP-маршруты.">
+        <legend>1. Что описывает GraphQL-схема?</legend>
+        <label><input type="radio" name="q1" value="a"> Таблицы и индексы</label>
+        <label><input type="radio" name="q1" value="b"> Поля и типы</label>
+        <label><input type="radio" name="q1" value="c"> Маршруты и контроллеры</label>
+        <p class="feedback" aria-live="polite"></p>
+      </fieldset>
+
+      <fieldset class="question" data-answer="c" data-correct="Верно. Для объектного значения клиент выбирает нужные поля." data-incorrect="Resolver должен знать источник данных, но клиент указывает selection set — набор полей.">
+        <legend>2. Что клиент указывает внутри объектного поля <code>profile</code>?</legend>
+        <label><input type="radio" name="q2" value="a"> Имя базы</label>
+        <label><input type="radio" name="q2" value="b"> Тип сервера</label>
+        <label><input type="radio" name="q2" value="c"> Набор полей</label>
+        <p class="feedback" aria-live="polite"></p>
+      </fieldset>
+
+      <fieldset class="question" data-answer="a" data-correct="Именно так: ответ повторяет selection set и не добавляет остальные поля." data-incorrect="GraphQL возвращает выбранные поля. В запросе выбран только name, поэтому в data.profile будет только он.">
+        <legend>3. Что появится в <code>data.profile</code> для <code>{ profile { name } }</code>?</legend>
+        <label><input type="radio" name="q3" value="a"> Только поле <code>name</code></label>
+        <label><input type="radio" name="q3" value="b"> Все поля профиля</label>
+        <label><input type="radio" name="q3" value="c"> Первые пять полей</label>
+        <p class="feedback" aria-live="polite"></p>
+      </fieldset>
+
+      <fieldset class="question" data-answer="d" data-correct="Да. Метод ProfileResolver.profile() связан с Query.profile декоратором @Query." data-incorrect="Service и repository участвуют позже, но GraphQL-поле Query.profile объявлено в ProfileResolver.">
+        <legend>4. Какой класс содержит явный resolver корневого <code>profile</code>?</legend>
+        <label><input type="radio" name="q4" value="a"> <code>ProfileService</code></label>
+        <label><input type="radio" name="q4" value="b"> <code>ProfileRepository</code></label>
+        <label><input type="radio" name="q4" value="c"> <code>PrismaService</code></label>
+        <label><input type="radio" name="q4" value="d"> <code>ProfileResolver</code></label>
+        <p class="feedback" aria-live="polite"></p>
+      </fieldset>
+
+      <p class="quiz-result" data-quiz-result aria-live="polite"></p>
+      <button type="reset">Пройти ещё раз</button>
+    </form>
+  </section>
+
+  <aside class="source">
+    <strong>Основной источник для чтения:</strong> <a href="https://graphql.org/learn/introduction/">Introduction to GraphQL</a>. Затем посмотри <a href="https://graphql.org/learn/queries/">Queries</a> — разделы «Fields» и «Operation name».
+  </aside>
+
+  <p>Если какой-то переход остался непонятным — особенно «как resolver возвращает вложенные объекты» или «почему схема не равна схеме базы» — спроси меня. Я твой преподаватель: разберём сомнение на конкретной строке проекта.</p>
+
+  <footer class="footer">
+    <a href="../reference/graphql-basics.html">Шпаргалка и словарь GraphQL</a> · Следующий шаг после уверенного прохождения quiz: типы <code>!</code>, списки и nullable-поля на примере <code>endedAt</code>.
+  </footer>
+</main>
+</body>
+</html>
