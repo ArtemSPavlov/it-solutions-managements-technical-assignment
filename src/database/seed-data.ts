@@ -78,6 +78,10 @@ export const profileSeed = {
   ],
   projects: [
     {
+      name: 'Единый регистр льготников (ЕРЛ)',
+      url: null,
+    },
+    {
       name: 'Платформа строительных сервисов CSP24',
       url: 'https://proptech.digitaldeveloper.ru/solutions/pss',
     },
