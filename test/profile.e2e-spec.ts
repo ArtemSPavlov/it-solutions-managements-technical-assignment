@@ -58,7 +58,13 @@ describe('Profile GraphQL API', () => {
     expect(response.body.data.profile.skills).toHaveLength(19);
     expect(response.body.data.profile.experience).toHaveLength(4);
     expect(response.body.data.profile.experience[0].company).toBe('USETECH');
-    expect(response.body.data.profile.projects).toHaveLength(2);
+    expect(response.body.data.profile.projects).toHaveLength(3);
+    expect(
+      response.body.data.profile.projects.find(
+        (project: { name: string }) =>
+          project.name === 'Единый регистр льготников (ЕРЛ)',
+      ),
+    ).toEqual({ name: 'Единый регистр льготников (ЕРЛ)', url: null });
   });
 
   it('serves Apollo Sandbox', async () => {

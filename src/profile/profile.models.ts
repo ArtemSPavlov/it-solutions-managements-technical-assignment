@@ -38,8 +38,8 @@ export class Project {
   @Field()
   name: string;
 
-  @Field()
-  url: string;
+  @Field(() => String, { nullable: true })
+  url: string | null;
 }
 
 @ObjectType()

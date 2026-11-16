@@ -31,7 +31,7 @@ type ProfileLink {
 
 type Project {
   name: String!
-  url: String!
+  url: String
 }
 
 type Query {
