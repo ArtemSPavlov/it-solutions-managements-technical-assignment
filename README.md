@@ -2,7 +2,7 @@
 
 Backend-приложение с данными Артёма Павлова: профилем, профессиональными ссылками, навыками, опытом работы и проектами. API доступен только для чтения; интерактивная документация открывается в Apollo Sandbox.
 
-**Статус:** чистый и повторный запуск через Docker проверен. Публичное развёртывание пока не настроено.
+**Публичный API:** [Apollo Sandbox на Railway](https://api-production-29f8f119.up.railway.app/graphql). Чистый и повторный запуск через Docker проверен.
 
 ## Стек
 
@@ -45,6 +45,18 @@ Seed выполняется при каждом запуске и не созд�
 ```bash
 docker compose down -v
 docker compose up --build
+```
+
+## Деплой на Railway
+
+Production-проект `digital-business-card` содержит сервисы `api` и `Postgres`. Приложение получает `DATABASE_URL` через ссылку на переменную PostgreSQL; миграции и seed выполняются тем же entrypoint, что и в Docker Compose.
+
+Повторный деплой из локальной копии:
+
+```bash
+npx --yes @railway/cli login
+npx --yes @railway/cli link --project digital-business-card --environment production --service api
+npx --yes @railway/cli up --service api
 ```
 
 ## Пример GraphQL-запроса
