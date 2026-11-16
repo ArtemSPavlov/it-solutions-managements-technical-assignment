@@ -51,7 +51,7 @@ model Experience {
 model Project {
   id        String  @id @default(cuid())
   name      String
-  url       String
+  url       String?
   profileId String
   profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 

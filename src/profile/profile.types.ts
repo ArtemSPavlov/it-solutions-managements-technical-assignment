@@ -21,5 +21,5 @@ export type ProfileRecord = {
     endedAt: Date | null;
     achievements: string[];
   }[];
-  projects?: { name: string; url: string }[];
+  projects?: { name: string; url: string | null }[];
 };
